@@ -32,6 +32,7 @@ const userCollection = db.collection("users");
 app.post("/sign-up", async (req, res) => {
   const user = req.body;
 
+
   const { error } = userSchema.validate(user, { abortEarly: false });
 
   if (error) {
@@ -42,7 +43,12 @@ app.post("/sign-up", async (req, res) => {
   const hashPassword = bcrypt.hashSync(user.password, 10);
 
   try {
+    const emailExist = await userCollection.findOne({email: user.email});
+    if(emailExist){
+      return res.status(409).send("Email já existe");
+    }
     await userCollection.insertOne({ ...user, password: hashPassword });
+    res.sendStatus(201)
   } catch (err) {
     console.log(err);
     res.sendStatus(500);
