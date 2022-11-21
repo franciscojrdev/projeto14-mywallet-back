@@ -4,12 +4,14 @@ import dotenv from "dotenv";
 import { MongoClient } from "mongodb";
 import bcrypt from "bcrypt";
 import joi from "joi";
+import dayjs from "dayjs";
+import { v4 as uuidV4 } from "uuid";
 
 const userSchema = joi.object({
   name: joi.string().required().min(3).max(100),
   email: joi.string().email().required(),
   password: joi.string().required(),
-  repeat_password: joi.ref("password")
+  repeat_password: joi.ref("password"),
 });
 
 const app = express();
@@ -28,6 +30,7 @@ try {
 
 const db = mongoClient.db("myWallet");
 const userCollection = db.collection("users");
+const accountCollection = db.collection("account");
 
 app.post("/sign-up", async (req, res) => {
   const user = req.body;
@@ -46,7 +49,11 @@ app.post("/sign-up", async (req, res) => {
     if (emailExist) {
       return res.status(409).send("Email já existe");
     }
-    await userCollection.insertOne({ ...user, password: hashPassword });
+    await userCollection.insertOne({
+      ...user,
+      password: hashPassword,
+      repeat_password: hashPassword,
+    });
     res.sendStatus(201);
   } catch (err) {
     console.log(err);
@@ -55,7 +62,10 @@ app.post("/sign-up", async (req, res) => {
 });
 
 app.post("/sign-in", async (req, res) => {
-  const {email, password} = req.body;
+  const { email, password } = req.body;
+
+  const token = uuidV4();
+  console.log(token);
 
   try {
     const userExist = await userCollection.findOne({ email });
@@ -63,16 +73,74 @@ app.post("/sign-in", async (req, res) => {
       return res.sendStatus(401);
     }
 
-    const compairPassword = bcrypt.compareSync(password, userExist.password) 
+    const compairPassword = bcrypt.compareSync(password, userExist.password);
 
-    if(!compairPassword){
-      return res.sendStatus(401)
+    if (!compairPassword) {
+      return res.sendStatus(401);
     }
 
-    res.send({ message: `olá ${userExist.name}, very welcome` });
+    await db.collection("sessions").insertOne({
+      token,
+      userId: userExist._id,
+    });
+
+    res.send({ token });
   } catch (err) {
     console.log(err);
     res.sendStatus(401);
+  }
+});
+
+app.get("/home", async (req, res) => {
+  const { authorization } = req.headers;
+
+  const token = authorization?.replace("Bearer ", "");
+
+  if (!token) {
+    return res.status(401).send("Token Invalid");
+  }
+  try {
+    const session = await db.collection("sessions").findOne({ token });
+
+    const user = await userCollection.findOne({ _id: session?.userId });
+
+    
+    console.log(accounts)
+    
+    if (!user) {
+      return res.sendStatus(401);
+    }
+    // const accounts = await accountCollection.find({userId:user?._id});
+    
+    delete user.password;
+    delete user.repeat_password;
+
+    res.send({ user });
+  } catch (err) {
+    console.log(err);
+    res.sendStatus(500);
+  }
+});
+
+app.post("/new-entry", async (req, res) => {
+  const { token, saque, values, descripition } = req.body;
+
+  try {
+    const session = await db.collection("sessions").findOne({ token });
+
+    const user = await db.collection("sessions").findOne({_id : session?.userId});
+
+    await accountCollection.insertOne({
+      userId: user?.userId,
+      saque,
+      values,
+      descripition,
+      day: dayjs().format('DD/MM')
+    })
+    res.sendStatus(201)
+  } catch (err) {
+    console.log(err);
+    res.sendStatus(500);
   }
 });
 
