@@ -5,12 +5,12 @@ import { transactionSchema } from "../Model/TransactionSchema.js";
 export async function listTransactions(req, res) {
   const { authorization } = req.headers;
 
-  const token = authorization?.replace('Bearer ','');
+  const token = authorization?.replace("Bearer ", "");
 
   try {
     const session = await db.collection("sessions").findOne({ token });
 
-    console.log("aqui",session);
+    console.log("aqui", session);
 
     if (!session || !token) {
       return res.sendStatus(401);
@@ -31,14 +31,14 @@ export async function listTransactions(req, res) {
 
     res
       .status(201)
-      .send({ user: { ...userSession }, data: { ...findTransactions } });
+      .send({ user: { ...userSession }, list: [...findTransactions] });
   } catch (error) {
     res.sendStatus(500);
   }
 }
 
 export async function createTransactions(req, res) {
-  const { token,description, valor, status } = req.body;
+  const { token, description, valor, status } = req.body;
 
   const { error } = transactionSchema.validate(
     { description, valor, status },
@@ -53,9 +53,7 @@ export async function createTransactions(req, res) {
     return;
   }
   try {
-    const findId = await db
-      .collection("sessions")
-      .findOne({ token: token });
+    const findId = await db.collection("sessions").findOne({ token: token });
     console.log(findId);
 
     if (!findId) {

@@ -52,7 +52,7 @@ export async function signIn(req,res){
         token,
       });
       console.log(token)
-      res.status(201).send(token);
+      res.status(201).send({token});
     } else {
       return res
         .status(400)
