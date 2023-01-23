@@ -1,6 +1,6 @@
 import db from "../config/database.js";
 import dayjs from "dayjs";
-import { transactionSchema } from "../Model/TransactionSchema.js";
+// import { transactionSchema } from "../Model/TransactionSchema.js";
 
 export async function listTransactions(req, res) {
   const { authorization } = req.headers;
@@ -40,18 +40,6 @@ export async function listTransactions(req, res) {
 export async function createTransactions(req, res) {
   const { token, description, valor, status } = req.body;
 
-  const { error } = transactionSchema.validate(
-    { description, valor, status },
-    {
-      abortEarly: false,
-    }
-  );
-
-  if (error) {
-    const erros = error.details.map((detail) => detail.message);
-    res.status(400).send(erros);
-    return;
-  }
   try {
     const findId = await db.collection("sessions").findOne({ token: token });
     console.log(findId);
