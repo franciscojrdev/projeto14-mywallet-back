@@ -1,25 +1,15 @@
 import db from "../config/database.js";
 import dayjs from "dayjs";
-// import { transactionSchema } from "../Model/TransactionSchema.js";
 
 export async function listTransactions(req, res) {
-  const { authorization } = req.headers;
-
-  const token = authorization?.replace("Bearer ", "");
+  
+  const session = res.locals.sessao
 
   try {
-    const session = await db.collection("sessions").findOne({ token });
-
-    console.log("aqui", session);
-
-    if (!session || !token) {
-      return res.sendStatus(401);
-    }
     const userSession = await db
       .collection("users")
       .findOne({ _id: session.userId });
-    console.log(userSession);
-    //se for apagar a senha ao enviar para o usuário
+
     delete userSession.password;
 
     const findTransactions = await db
@@ -27,7 +17,7 @@ export async function listTransactions(req, res) {
       .find({ userId: userSession._id })
       .toArray();
 
-    console.log(findTransactions);
+    // console.log(findTransactions);
 
     res
       .status(201)

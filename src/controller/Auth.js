@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
 import db from "../config/database.js";
-// import { userSchema } from "../Model/AuthSchema.js";
 
 export async function signUp(req, res) {
   const user = req.body;
@@ -42,7 +41,6 @@ export async function signIn(req, res) {
         userId: user._id,
         token,
       });
-      console.log(token);
       res.status(201).send({ token });
     } else {
       return res
